@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>d3 Labs</title>
+    <style type="text/css">
+
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #container{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .nodes, .nodes svg , .links, .links svg{
+            position: absolute;
+        }
+
+        .nodes circle {
+            fill: #8545dd;
+            stroke: #000;
+            stroke-width: 2px;
+        }
+
+        .link line {
+            stroke: #000;
+            stroke-width: 2px;
+        }
+
+        #buttoncontainer {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            width:600px;
+            margin: -60px -300px;
+        }
+
+        #buttoncontainer input {
+            height: 50px;
+            width: 197px;
+        }
+
+    </style>
+  </head>
+  <body>
+
+    <div id="container">
+      <div id="map"></div>
+    </div>
+
+    <div id="buttoncontainer">
+        <input type="button" value="time" onclick="javascript:timeDimension()"/>
+        <input type="button" value="space" onclick="javascript:spaceDimension()"/>
+        <input type="button" value="context" onclick="javascript:contextDimension()"/>
+    </div>
+
+    <script type="text/javascript" src="google.maps.js"></script>
+    <script type="text/javascript" src="d3.v2.js"></script>
+    <script type="text/javascript" src="jquery-2.0.3.js"></script>
+    <script type="text/javascript">
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        var ZEROLAYER = 12;
+        var INITZOOM = 8;
+        var DIM = "context";
+
+        var nodes, links, overlay;
+
+        // create the google map
+        var map = new google.maps.Map(d3.select("#map").node(), {
+            zoom: INITZOOM,
+            center: new google.maps.LatLng(51.9233, 4.4867),
+            mapTypeId: google.maps.MapTypeId.TERRAIN
+        });
+
+        // create the force layout
+        var force = d3.layout.force()
+            .charge(-100)
+            .linkStrength(1)
+            .friction(.7)
+            .size([w, h]);
+
+        var format = d3.time.format("%Y%m%d");
+        var timescale  = d3.time.scale().range([100,300]);
+        var groupscale = d3.scale.ordinal().rangePoints([300,500]);
+        var colorscale = d3.scale.category20();
+
+        // Load the station data. When the data comes back, create an overlay.
+        d3.json("stations.json", function(data) {
+
+            nodes = d3.entries(data.nodes);
+            links = data.links;
+
+            overlay = new google.maps.OverlayView();
+
+            colorscale.domain(nodes.map(function(d){ return d.value.group; }));
+            groupscale.domain(nodes.map(function(d){ return d.value.group; }));
+            var moo = nodes.map(function(d){ return format.parse(d.value.date); });
+            timescale.domain(moo);
+
+            // Add the container when the overlay is added to the map.
+            overlay.onAdd = function() {
+
+                var layer = d3.select(this.getPanes().overlayLayer);
+                var nodelayer = layer.append("div").attr("class", "nodes");
+                var linklayer = layer.append("div").attr("class", "links");
+
+                force.nodes(nodes).links(links).start();
+
+                // Draw each marker as a separate SVG element.
+                // We could use a single SVG, but what size would it have?
+                overlay.draw = function() {
+
+                    // get projection from map and create transform
+                    var projection = this.getProjection();
+
+                    // showmap based on DIM value
+                    showMap(DIM=="map");
+
+                    var zoom = Math.pow(2,(map.zoom-ZEROLAYER));
+                    function diamet_fnc(d){ return Math.max(6, 2 * d.value.radius * zoom) + 10; }
+                    function center_fnc(d){ return Math.max(3,     d.value.radius * zoom) + 5; }
+                    function radius_fnc(d){ return Math.max(3,     d.value.radius * zoom); }
+                    function attach_grav(d) {
+                        if(DIM=="map"){
+                            d.grav = new google.maps.LatLng(d.value.lon, d.value.lat);
+                            d.grav = projection.fromLatLngToDivPixel(d.grav);
+                        } else {
+                            d.grav = null;
+                        }
+                    }
+
+                    // add links
+                    var link_svgs = linklayer.selectAll("svg.link")
+                        .data(links);
+                    link_svgs.enter().append("svg:svg")
+                        .style("z-index",300)
+                        .attr("class","link")
+                            .append("svg:line");
+
+                    // add markers
+                    var node_svgs = nodelayer.selectAll("svg.node")
+                        .data(nodes)
+                            .attr("width", diamet_fnc)
+                            .attr("height", diamet_fnc)
+                            .each(attach_grav);
+                        node_svgs.selectAll("circle")
+                            .attr("r", radius_fnc)
+                            .attr("cx", center_fnc)
+                            .attr("cy", center_fnc);
+                    node_svgs.enter().append("svg:svg")
+                        .style("z-index",301)
+                        .attr("width", diamet_fnc)
+                        .attr("height", diamet_fnc)
+                        .each(attach_grav)
+                        .attr("class", "node")
+                        .append("svg:circle")
+                            .attr("r", radius_fnc)
+                            .attr("cx", center_fnc)
+                            .attr("cy", center_fnc)
+                            .style("fill",function(d){ return colorscale(d.value.group); });
+
+                    // force tick function
+                    force.on("tick", function(e) {
+
+                        // update links
+                        links.forEach(function(d, i) {
+                            var deltax = d.target.x - d.source.x;
+                            var deltay = d.target.y - d.source.y;
+
+                            d.width = Math.abs(deltax);
+                            d.height = Math.abs(deltay);
+
+                            d.left = Math.min(d.source.x, d.target.x);
+                            d.right = Math.min(d.source.y, d.target.y);
+
+                            d.y1 = ((deltax*deltay)>0)?0:d.height;
+                            d.y2 = ((deltax*deltay)>0)?d.height:0;
+
+                        });
+
+                        var svgpadding = 5; // svg padding
+                        link_svgs
+                            .attr("width",    function(d){ return d.width+(svgpadding*2); })
+                            .attr("height",   function(d){ return d.height+(svgpadding*2); })
+                            .style("left",    function(d){ return d.left-svgpadding; })
+                            .style("top",     function(d){ return d.right-svgpadding; })
+                            .style("opacity", function(d){
+                                if(DIM=="time"){ return 0; }
+                                if(DIM=="map") { return 1; }
+                                return 1;
+                            });
+                        link_svgs.selectAll("line")
+                            .attr("x1", svgpadding)
+                            .attr("x2", function(d){ return d.width+svgpadding; })
+                            .attr("y1", function(d){ return d.y1+svgpadding; })
+                            .attr("y2", function(d){ return d.y2+svgpadding; });
+
+                        // update nodes
+                        nodes.forEach(function(d, i) {
+                            if(DIM=="map"){
+                                d.x += (d.grav.x - d.x) * e.alpha * 5;
+                                d.y += (d.grav.y - d.y) * e.alpha * 5;
+                            }
+                            if(DIM=="time"){
+                                d.x += (timescale(format.parse(d.value.date)) - d.x) * e.alpha * 5;
+                                d.y += (groupscale(d.value.group) - d.y) * e.alpha * 5;
+                            }
+                        });
+
+                        node_svgs
+                            .style("left", function(d){ return (d.x - d.value.radius * zoom - 5) + "px"; })
+                            .style("top",  function(d){ return (d.y - d.value.radius * zoom - 5) + "px"; });
+
+                    });
+
+                    force.start();
+                };
+
+            };
+
+            // Bind our overlay to the map…
+            overlay.setMap(map);
+        });
+
+
+        // time
+        function timeDimension(){
+            DIM = "time";
+            force.linkStrength(0);
+            overlay.draw();
+        }
+
+        // context
+        function contextDimension(){
+            DIM = "context";
+            force.linkStrength(1);
+            map.setZoom(INITZOOM);
+            overlay.draw();
+        }
+
+        // space
+        function spaceDimension(){
+            DIM = "map";
+            force.linkStrength(0);
+            overlay.draw();
+        }
+
+        function showMap(show){
+            var div = $("div.gm-style > div > div > div").filter(function(){
+                return $(this).css("z-index") == 0 ;
+            });
+            if(show){
+                div.animate({"opacity":1});
+            } else {
+                div.animate({"opacity":0});
+            }
+        }
+
+    </script>
+
+  </body>
+</html>

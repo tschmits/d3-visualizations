@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Force-Directed Layout with Convex Hull</title>
+    <script src="d3.v2.js"></script>
+    <style type="text/css">
+      #chart{
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin: -450px -600px;
+        background: #f8f8f8;
+        border-radius: 20px;
+      }
+      #sliders {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin: 450px -600px;
+        padding: 20px;
+        opacity: 0.0;
+      }
+      #sliders:hover{
+        opacity: 1;
+      }
+      input[type="range"]{
+        width:1160px;
+      }
+    </style>
+ </head>
+  <body>
+
+    <div id="chart"></div>
+
+    <div id="sliders">
+      <input id="dots" type="range" min="1" max="500" value="238"/><br/>
+      <input id="groups" type="range" min="1" max="20" value="10"/>
+    </div>
+
+    <script type="text/javascript">
+
+      var groupcnt = 10,
+          dotcnt = 238,
+          w = 1200,
+          h = 900,
+          fill = d3.scale.category20c();
+
+          var force, gravs, groups, groupFill, groupPath, node, nodes, vis;
+
+      vis = d3.select("#chart").append("svg")
+        .attr("width", w)
+        .attr("height", h);
+
+      force = d3.layout.force()
+        .charge(-300)
+        .size([w, h]);
+
+      gravs = d3.range(20).map(function(d,i){
+            return {
+              "x":(Math.random()*.4+.3)*w,
+              "y":(Math.random()*.4+.3)*h
+            };
+          });
+
+      groupPath = function(d) {
+          return "M" +
+            d3.geom.hull(d.values.map(function(i) { return [i.x, i.y]; }))
+              .join("L")
+          + "Z";
+      };
+      groupFill = function(d, i) { return fill(i); };
+
+      var reload = function(){
+
+        nodes = d3.range(dotcnt).map(function(d){
+          return Object(d%groupcnt);
+        });
+
+        groups = d3.nest().key(function(d) { return d; }).entries(nodes);
+
+        force.nodes(nodes).start();
+
+        node = vis.selectAll("circle.node")
+            .data(nodes).style("fill", function(d, i) { return fill(d); })
+            .style("stroke", function(d, i) { return d3.rgb(fill(d)).darker(2); });
+        node.enter().append("circle")
+            .attr("class", "node")
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .attr("r", 8)
+            .style("fill", function(d, i) { return fill(d); })
+            .style("stroke", function(d, i) { return d3.rgb(fill(d)).darker(2); })
+            .style("stroke-width", 1.5)
+            .call(force.drag);
+        node.exit().remove();
+
+      }
+
+      force.on("tick", function(e) {
+
+        // Push different nodes in different directions for clustering.
+        nodes.forEach(function(o, i) {
+
+          console.log(o);
+
+          var dx = gravs[o].x - o.x,
+              dy = gravs[o].y - o.y;
+
+          o.x += dx*e.alpha;
+          o.y += dy*e.alpha;
+
+        });
+
+        node.attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+
+        var paths = vis.selectAll("path")
+          .data(groups)
+            .attr("d", groupPath);
+        paths.enter().insert("path", "circle")
+            .style("fill", groupFill)
+            .style("stroke", groupFill)
+            .style("stroke-width", 40)
+            .style("stroke-linejoin", "round")
+            .style("opacity", .5)
+            .attr("d", groupPath);
+        paths.exit().remove();
+      });
+
+      var refresh = function(){
+        nodes.forEach(function(o, i) {
+          o.x += (Math.random() - .5) * 80;
+          o.y += (Math.random() - .5) * 80;
+        });
+        gravs.forEach(function(g, i) {
+          g.x = (Math.random()*.4+.3)*w;
+          g.y = (Math.random()*.4+.3)*h;
+        });
+        force.resume();
+      }
+
+      var refreshIntervalId;
+      d3.select("#chart").on("click", function() {
+        if(refreshIntervalId){
+          clearInterval(refreshIntervalId);
+          refreshIntervalId = null;
+        } else {
+          refresh();
+          refreshIntervalId = setInterval("refresh()", 5000 );
+        }
+      });
+
+      d3.select("#dots").on("mouseup", function() {
+        dotcnt = document.getElementById("dots").value;
+        reload();
+      });
+      d3.select("#groups").on("mouseup", function() {
+        groupcnt = document.getElementById("groups").value;
+        reload();
+      });
+
+      reload();
+      var refreshIntervalId = setInterval("refresh()", 5000 );
+
+    </script>
+  </body>
+</html>
