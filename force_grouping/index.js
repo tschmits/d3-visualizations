@@ -82,7 +82,8 @@ var reload = function(){
     .attr("d", groupPath);
   paths.exit().remove();
 
-}();
+}
+reload();
 
 // refresh random gravity positions
 var refresh = function(){
