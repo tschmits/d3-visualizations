@@ -22,12 +22,13 @@ var groupFill = function(d, i) { return circleFill(i); };
 var groupPath = function(d) { return "M" + d3.geom.hull(d.values.map(function(i) { return [i.x, i.y]; })) .join("L") + "Z"; };
 
 // d3 viz elements
+var viz, force;
 var createSVG = function(){
-  var viz = d3.select("#viz").append("svg")
+  viz = d3.select("#viz").append("svg")
   .attr("width", w)
   .attr("height", h);
 
-  var force = d3.layout.force()
+  force = d3.layout.force()
   .charge(-300)
   .size([w, h])
   .on("tick", function(e) {
