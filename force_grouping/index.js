@@ -1,8 +1,10 @@
-// globals
+// dataset globals
 var groupcnt = 20,
-  dotcnt = 100,
-  w = 800,
-  h = 600;
+  dotcnt = 100;
+
+// viz width and height if not yet defined
+var w = (w)?w:800,
+  h = (h)?h:600;
 
 // datasets
 var nodes = d3.range(dotcnt).map(function(d){ return Object(d % groupcnt); });
@@ -47,7 +49,6 @@ var force = d3.layout.force()
 // loading data, drawing html
 var circles, paths;
 var reload = function(){
-
 
 force.nodes(nodes).start();
 
