@@ -47,7 +47,8 @@ var createSVG = function(){
     paths.attr("d", groupPath);
 
   });
-}();
+}
+createSVG();
 
 // loading data, drawing html
 var circles, paths;
