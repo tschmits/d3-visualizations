@@ -1,0 +1,162 @@
+/* ----- html styling ----- */
+
+* {
+	font-family:'arial';
+}
+
+body {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 1100px;
+	height: 500px;
+	margin: -250px -550px;
+}
+
+#content {
+	position: relative;
+}
+
+#donutcontainer {
+	width: 500px;
+	height: 500px;
+	/*background: #edd;*/
+	float: left;
+}
+#graphcontainer {
+	width: 600px;
+	height: 500px;
+	float: right;
+}
+#title {
+	width: 600px;
+	height: 175px;
+	/*background: #ded;*/
+}
+#graph {
+	width: 600px;
+	height: 250px;
+	/*background: #dde;*/
+}
+#legend {
+	width: 600px;
+	height: 75px;
+	/*background: #dee;*/
+}
+
+
+
+/* ----- svg styling ----- */
+
+.label {
+	font-family: 'arial';
+	text-anchor: end;
+}
+.label-light {
+	font-family: 'arial';
+}
+.label-bold {
+	font-family: 'arial';
+	font-weight: bold;
+}
+
+
+/* donut */
+
+.donutpath {
+	stroke: #fff;
+}
+
+#donutlabel-main {
+	font-size: 27px;
+}
+
+#donutlabel-sub {
+	font-size: 14px;
+	fill: #777;
+}
+
+#title-super {
+	font-size: 38px;
+	fill: #777;
+}
+
+#title-main {
+	font-size: 140px;
+	font-variant: small-caps;
+}
+
+#title-sub {
+	font-size: 34px;
+	fill: #777;
+}
+
+
+/* line graph */
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: #ddd;
+	shape-rendering: crispEdges;
+}
+.axis text {
+	font-size: 8px;
+}
+.y.axis path,
+.y.axis line {
+	display: none;
+}
+
+.line {
+	fill: none;
+	stroke: #000;
+	stroke-width: 2px;
+}
+
+
+/* bar chart */
+
+.eg_bar {
+	opacity: .3;
+}
+
+
+/* legend */
+
+#legend {
+	padding-top: 20px;
+}
+
+#legend {
+	font-size: 12px;
+}
+#legend > div > div{
+	margin: 0 3px;
+}
+#legend .measurement {
+	width: 200px;
+	font-family: Aller_Rg;
+	text-align: right;
+	float: left;
+}
+#legend .unit {
+	color: #777;
+}
+
+#barchart-legend .value{
+	float: left;
+	width: 90px;
+	text-align: center;
+}
+#linechart-legend .value{
+	float: left;
+	height: 2px;
+	margin-top: 7px;
+	margin-bottom: 6px;
+	width: 90px;
+	text-align: center;
+}
+.clear {
+	clear: both;
+}

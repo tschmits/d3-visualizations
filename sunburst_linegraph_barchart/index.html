@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="/fonts/allerfont.css"></link>
+	<link rel="stylesheet" href="style.css"></link>
+</head>
+<body>
+
+	<div id="content">
+
+		<div id="donutcontainer">
+			<svg>
+				<g>
+					<text id="donutlabel-main" class= "label" dx="280" dy="265">Werkgelegenheid</text>
+					<text id="donutlabel-sub" class= "label label-light" dx="280" dy="280">naar sector</text>
+				</g>
+			</svg>
+		</div>
+
+		<div id="graphcontainer">
+
+			<div id="title">
+				<svg>
+					<g>
+						<text id="title-super" class= "label" dx="600" dy="40">Economische Verkenningen</text>
+						<text id="title-main" class= "label label-bold" dx="670" dy="125" transform="scale(.9,1)">Rotterdam</text>
+						<text id="title-sub" class= "label" dx="600" dy="160">2013</text>
+					</g>
+				</svg>
+			</div>
+
+			<div id="graph"></div>
+
+			<div id="legend">
+				<div id="barchart-legend">
+					<div class="measurement">Bruto Toegevoegde Waarde <span class="unit">%</span></div>
+					<div class="value" style="background:#bcd6e9;">Rijnmond</div>
+					<div class="value" style="background:#e7eef8;">GrootRijnmond</div>
+					<div class="value" style="background:#ffd9b7;">ZuidHolland</div>
+					<div class="value" style="background:#ffebd7;">Nederland</div>
+					<div class="clear"></div>
+				</div>
+				<div id="linechart-legend">
+					<div class="measurement">Economische Groei <span class="unit">bbp%</span></div>
+					<div class="value" style="background:#1f77b4;"></div>
+					<div class="value" style="background:#aec7e8;"></div>
+					<div class="value" style="background:#ff7f0e;"></div>
+					<div class="value" style="background:#ffbb78;"></div>
+					<div class="clear"></div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+	<script src="d3.v3.min.js"></script>
+	<script src="index.js"></script>
+</body>

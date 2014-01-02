@@ -1,0 +1,52 @@
+{
+ "name": "root", "children": [
+   {
+    "name": "sector1", "children": [
+      {"name": "s1_ZuidHolland", "children": [
+        {"name": "s1_GrootRijnmond", "children": [
+          {"name": "s1_Rijnmond", "size": 1},
+          {"name": "s1_rest", "size": 3}
+        ]},
+        {"name": "s1_rest", "size": 5}
+      ]},
+      {"name": "s1_rest", "size": 10}
+    ]
+   },
+   {
+    "name": "sector2", "children": [
+      {"name": "s2_ZuidHolland", "children": [
+        {"name": "s2_GrootRijnmond", "children": [
+          {"name": "s2_Rijnmond", "size": 1},
+          {"name": "s2_rest", "size": 3}
+        ]},
+        {"name": "s2_rest", "size": 5}
+      ]},
+      {"name": "s2_rest", "size": 10}
+    ]
+   },
+   {
+    "name": "sector3", "children": [
+      {"name": "s3_ZuidHolland", "children": [
+        {"name": "s3_GrootRijnmond", "children": [
+          {"name": "s3_Rijnmond", "size": 1},
+          {"name": "s3_rest", "size": 3}
+        ]},
+        {"name": "s3_rest", "size": 5}
+      ]},
+      {"name": "s3_rest", "size": 10}
+    ]
+   },
+   {
+    "name": "s4_sector4", "children": [
+      {"name": "s4_ZuidHolland", "children": [
+        {"name": "s4_GrootRijnmond", "children": [
+          {"name": "s4_Rijnmond", "size": 1},
+          {"name": "s4_rest", "size": 3}
+        ]},
+        {"name": "s4_rest", "size": 5}
+      ]},
+      {"name": "s4_rest", "size": 10}
+    ]
+   }
+  ]
+}
