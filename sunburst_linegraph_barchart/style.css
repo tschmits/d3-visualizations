@@ -20,7 +20,6 @@ body {
 #donutcontainer {
 	width: 500px;
 	height: 500px;
-	/*background: #edd;*/
 	float: left;
 }
 #graphcontainer {
@@ -31,17 +30,14 @@ body {
 #title {
 	width: 600px;
 	height: 175px;
-	/*background: #ded;*/
 }
 #graph {
 	width: 600px;
 	height: 250px;
-	/*background: #dde;*/
 }
 #legend {
 	width: 600px;
 	height: 75px;
-	/*background: #dee;*/
 }
 
 

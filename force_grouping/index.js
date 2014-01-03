@@ -87,11 +87,11 @@ reload();
 
 // refresh random gravity positions
 var refresh = function(){
-gravities.forEach(function(g, i) {
-  g.x = (Math.random() * .4 + .3) * w;
-  g.y = (Math.random() * .4 + .3) * h;
-});
-force.resume();
+  gravities.forEach(function(g, i) {
+    g.x = (Math.random() * .4 + .3) * w;
+    g.y = (Math.random() * .4 + .3) * h;
+  });
+  force.resume();
 }
 var refreshIntervalId = setInterval("refresh()", 5000 );
 
