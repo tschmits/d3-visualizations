@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <meta charset="utf-8">
+    <title>Parallel Sets by Jason Davies</title>
+    <style>
+      @import url(d3.parsets.css);
+      #vis {
+        font-size: 10px;
+        font-family: Arial;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin: -200px -400px;
+      }
+      .tooltip {
+        font-family: Arial;
+      }
+      h1 {
+        font-size: 4em;
+      }
+    </style>
+
+  </head>
+  <body>
+
+    <div id="vis"></div>
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="d3.parsets.js"></script>
+    <script>
+      var chart = d3.parsets()
+          .dimensions([
+              "Software",
+              "Tools",
+              "Projects/Services"
+          ])
+          .tension(.5)
+          .width(800)
+          .height(400);
+
+      var vis = d3.select("#vis").append("svg")
+          .attr("width", chart.width())
+          .attr("height", chart.height());
+
+      d3.csv("except_sp_t_t.csv", function(csv) {
+        vis.datum(csv).call(chart);
+      });
+    </script>
+
+  </body>
+</html>
