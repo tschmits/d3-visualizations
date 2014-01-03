@@ -9,14 +9,12 @@ var chart = d3.parsets()
         ])
         .tension(.5);
 
-var svg = d3.select("#viz").append("svg");
-
 function loaddata(){
     chart
         .width(w)
         .height(h);
 
-    svg
+    var svg = d3.select("#viz").append("svg")
         .attr("width", chart.width())
         .attr("height", chart.height());
 
