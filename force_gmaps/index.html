@@ -20,14 +20,34 @@
             height: 100%;
         }
 
+        .backlayer {
+            position: absolute;
+            background: #fff;
+            width: 6000px;
+            height: 6000px;
+            top: -2000px;
+            left: -2000px;
+        }
+
+        .timelayer {
+            position: absolute;
+            opacity: 0;
+        }
+        .timeline {
+            stroke: #aaa;
+            stroke-width: 1px;
+        }
+        text.dates {
+            fill: #888;
+        }
+
         .nodes, .nodes svg , .links, .links svg{
             position: absolute;
         }
 
         .nodes circle {
             fill: #8545dd;
-            stroke: #000;
-            stroke-width: 2px;
+            opacity: .8;
         }
 
         .link line {
@@ -69,56 +89,72 @@
 
         var w = window.innerWidth;
         var h = window.innerHeight;
+        var timemargin = w/20;
+        var min_r = 5;
 
-        var ZEROLAYER = 12;
-        var INITZOOM = 8;
+        var ZEROLAYER = 6;
+        var INITZOOM = 3;
         var DIM = "context";
 
         var nodes, links, overlay;
+        var layer, backlayer, timelayer, nodelayer, linklayer;
+
+        var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
 
         // create the google map
         var map = new google.maps.Map(d3.select("#map").node(), {
             zoom: INITZOOM,
-            center: new google.maps.LatLng(51.9233, 4.4867),
+            center: new google.maps.LatLng(20, 0), // Rdam: 51.9233, 4.4867
             mapTypeId: google.maps.MapTypeId.TERRAIN
         });
 
         // create the force layout
         var force = d3.layout.force()
-            .charge(-100)
             .linkStrength(1)
-            .friction(.7)
+            .friction(.5)
+            .gravity(.8)
             .size([w, h]);
 
+        // scales
         var format = d3.time.format("%Y%m%d");
-        var timescale  = d3.time.scale().range([100,300]);
-        var groupscale = d3.scale.ordinal().rangePoints([300,500]);
+        var timescale  = d3.time.scale().range([timemargin,w-timemargin]);
+        var groupscale = d3.scale.ordinal().rangePoints([timemargin,h-timemargin-40]);
         var colorscale = d3.scale.category20();
 
         // Load the station data. When the data comes back, create an overlay.
         d3.json("stations.json", function(data) {
 
+            // data
             nodes = d3.entries(data.nodes);
             links = data.links;
 
+            // overlay
             overlay = new google.maps.OverlayView();
 
-            colorscale.domain(nodes.map(function(d){ return d.value.group; }));
-            groupscale.domain(nodes.map(function(d){ return d.value.group; }));
-            var moo = nodes.map(function(d){ return format.parse(d.value.date); });
-            timescale.domain(moo);
+            // scales: ordinal
+            var groups = sort_unique(nodes.map(function(d){ return d.value.group; }));
+            colorscale.domain(groups);
+            groupscale.domain(groups);
+            // scales: linear
+            var times = sort_unique(
+                    nodes.map(function(d){
+                        return format.parse(d.value.date);
+                    })
+                );
+            timescale.domain([times[0],times[times.length-1]]);
 
             // Add the container when the overlay is added to the map.
             overlay.onAdd = function() {
 
-                var layer = d3.select(this.getPanes().overlayLayer);
-                var nodelayer = layer.append("div").attr("class", "nodes");
-                var linklayer = layer.append("div").attr("class", "links");
+                layer = d3.select(this.getPanes().overlayLayer);
+                backlayer = layer.append("div").attr("class", "backlayer");
+                timelayer = layer.append("div").attr("class", "timelayer");
+                nodelayer = layer.append("div").attr("class", "nodes");
+                linklayer = layer.append("div").attr("class", "links");
 
                 force.nodes(nodes).links(links).start();
 
-                // Draw each marker as a separate SVG element.
-                // We could use a single SVG, but what size would it have?
+                // draw each marker as a separate SVG element.
                 overlay.draw = function() {
 
                     // get projection from map and create transform
@@ -128,9 +164,9 @@
                     showMap(DIM=="map");
 
                     var zoom = Math.pow(2,(map.zoom-ZEROLAYER));
-                    function diamet_fnc(d){ return Math.max(6, 2 * d.value.radius * zoom) + 10; }
-                    function center_fnc(d){ return Math.max(3,     d.value.radius * zoom) + 5; }
-                    function radius_fnc(d){ return Math.max(3,     d.value.radius * zoom); }
+                    function diamet_fnc(d){ return Math.max(min_r*2, 2 * d.value.radius * zoom) + 10; }
+                    function center_fnc(d){ return Math.max(min_r,     d.value.radius * zoom) + 5; }
+                    function radius_fnc(d){ return Math.max(min_r,     d.value.radius * zoom); }
                     function attach_grav(d) {
                         if(DIM=="map"){
                             d.grav = new google.maps.LatLng(d.value.lon, d.value.lat);
@@ -139,6 +175,35 @@
                             d.grav = null;
                         }
                     }
+
+                    force.charge(function(d){
+                        if(DIM=="context"){
+                            return -2 * Math.pow(d.value.radius*zoom,2);
+                        }
+                        return 0;
+                    });
+
+                    // add timelines per group
+                    var time_svg = timelayer
+                        .style("width",w+"px")
+                        .style("height",h+"px")
+                        .append('svg:svg');
+                    var time_lines = time_svg.selectAll("line.timeline")
+                        .data(groups);
+                    time_lines.enter().append("svg:line")
+                        .attr("class","timeline")
+                            .attr("x1", function(d){ return timescale(times[0]) - 10; })
+                            .attr("y1", function(d){ return groupscale(d); })
+                            .attr("x2", function(d){ return timescale(times[times.length-1])  + 10; })
+                            .attr("y2", function(d){ return groupscale(d); })
+                    ;
+                    var time_dates = time_svg.selectAll("text.dates")
+                        .data([format.parse("20130101"), format.parse("20130201"), format.parse("20130301"), format.parse("20130401"), format.parse("20130501"), format.parse("20130601"), format.parse("20130701"), format.parse("20130801"), format.parse("20130901"), format.parse("20131001"), format.parse("20131101"), format.parse("20131201"), format.parse("20140101") ]);
+                    time_dates.enter().append("svg:text")
+                        .attr("class","dates")
+                        .text(function(d){ return (d.getMonth())?monthNames[d.getMonth()]:d.getFullYear(); })
+                        .attr("x",function(d){ return timescale(d); })
+                        .attr("y", h - timemargin-20);
 
                     // add links
                     var link_svgs = linklayer.selectAll("svg.link")
@@ -209,18 +274,18 @@
                         // update nodes
                         nodes.forEach(function(d, i) {
                             if(DIM=="map"){
-                                d.x += (d.grav.x - d.x) * e.alpha * 5;
-                                d.y += (d.grav.y - d.y) * e.alpha * 5;
+                                d.x += (d.grav.x - d.x) * e.alpha;
+                                d.y += (d.grav.y - d.y) * e.alpha;
                             }
                             if(DIM=="time"){
-                                d.x += (timescale(format.parse(d.value.date)) - d.x) * e.alpha * 5;
-                                d.y += (groupscale(d.value.group) - d.y) * e.alpha * 5;
+                                d.x += (timescale(format.parse(d.value.date)) - d.x) * e.alpha;
+                                d.y += (groupscale(d.value.group) - d.y) * e.alpha;
                             }
                         });
 
                         node_svgs
-                            .style("left", function(d){ return (d.x - d.value.radius * zoom - 5) + "px"; })
-                            .style("top",  function(d){ return (d.y - d.value.radius * zoom - 5) + "px"; });
+                            .style("left", function(d){ return (d.x - Math.max(min_r, d.value.radius * zoom) - 5) + "px"; })
+                            .style("top",  function(d){ return (d.y - Math.max(min_r, d.value.radius * zoom) - 5) + "px"; });
 
                     });
 
@@ -237,14 +302,18 @@
         // time
         function timeDimension(){
             DIM = "time";
-            force.linkStrength(0);
+            force.linkStrength(0).gravity(0);
+            backlayer.style("opacity", 1);
+            timelayer.style("opacity", 1);
             overlay.draw();
         }
 
         // context
         function contextDimension(){
             DIM = "context";
-            force.linkStrength(1);
+            force.linkStrength(1).gravity(.8);
+            backlayer.style("opacity", 1);
+            timelayer.style("opacity", 0);
             map.setZoom(INITZOOM);
             overlay.draw();
         }
@@ -252,21 +321,25 @@
         // space
         function spaceDimension(){
             DIM = "map";
-            force.linkStrength(0);
+            force.linkStrength(0).gravity(0);
+            backlayer.style("opacity", .5);
+            timelayer.style("opacity", 0);
             overlay.draw();
         }
 
         function showMap(show){
-            var div = $("div.gm-style > div > div > div").filter(function(){
-                return $(this).css("z-index") == 0 ;
-            });
-            if(show){
-                div.animate({"opacity":1});
-            } else {
-                div.animate({"opacity":0});
-            }
         }
 
+        function sort_unique(arr) {
+            arr = arr.sort(function (a, b) { return a*1 - b*1; });
+            var ret = [arr[0]];
+            for (var i = 1; i < arr.length; i++) { // start loop at 1 as element 0 can never be a duplicate
+                if (arr[i-1] !== arr[i]) {
+                    ret.push(arr[i]);
+                }
+            }
+            return ret;
+        }
     </script>
 
   </body>
