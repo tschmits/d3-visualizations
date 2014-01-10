@@ -47,7 +47,6 @@
 
         .nodes circle {
             fill: #8545dd;
-            opacity: .8;
         }
 
         .link line {
@@ -84,12 +83,11 @@
 
     <script type="text/javascript" src="google.maps.js"></script>
     <script type="text/javascript" src="d3.v2.js"></script>
-    <script type="text/javascript" src="jquery-2.0.3.js"></script>
     <script type="text/javascript">
 
         var w = window.innerWidth;
         var h = window.innerHeight;
-        var timemargin = w/20;
+        var timemargin = 100;
         var min_r = 5;
 
         var ZEROLAYER = 6;
@@ -97,7 +95,7 @@
         var DIM = "context";
 
         var nodes, links, overlay;
-        var layer, backlayer, timelayer, nodelayer, linklayer;
+        var layer, backlayer, timelayer, time_svg, nodelayer, linklayer;
 
         var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
 
@@ -149,6 +147,7 @@
                 layer = d3.select(this.getPanes().overlayLayer);
                 backlayer = layer.append("div").attr("class", "backlayer");
                 timelayer = layer.append("div").attr("class", "timelayer");
+                time_svg = timelayer.append('svg:svg');
                 nodelayer = layer.append("div").attr("class", "nodes");
                 linklayer = layer.append("div").attr("class", "links");
 
@@ -164,9 +163,7 @@
                     showMap(DIM=="map");
 
                     var zoom = Math.pow(2,(map.zoom-ZEROLAYER));
-                    function diamet_fnc(d){ return Math.max(min_r*2, 2 * d.value.radius * zoom) + 10; }
-                    function center_fnc(d){ return Math.max(min_r,     d.value.radius * zoom) + 5; }
-                    function radius_fnc(d){ return Math.max(min_r,     d.value.radius * zoom); }
+
                     function attach_grav(d) {
                         if(DIM=="map"){
                             d.grav = new google.maps.LatLng(d.value.lon, d.value.lat);
@@ -178,16 +175,15 @@
 
                     force.charge(function(d){
                         if(DIM=="context"){
-                            return -2 * Math.pow(d.value.radius*zoom,2);
+                            return -50*Math.pow(d.value.scale,2);
                         }
                         return 0;
                     });
 
                     // add timelines per group
-                    var time_svg = timelayer
+                    timelayer
                         .style("width",w+"px")
-                        .style("height",h+"px")
-                        .append('svg:svg');
+                        .style("height",h+"px");
                     var time_lines = time_svg.selectAll("line.timeline")
                         .data(groups);
                     time_lines.enter().append("svg:line")
@@ -214,25 +210,49 @@
                             .append("svg:line");
 
                     // add markers
+                    var markins = 5;
+                    var markout = 5;
+
                     var node_svgs = nodelayer.selectAll("svg.node")
-                        .data(nodes)
-                            .attr("width", diamet_fnc)
-                            .attr("height", diamet_fnc)
-                            .each(attach_grav);
-                        node_svgs.selectAll("circle")
-                            .attr("r", radius_fnc)
-                            .attr("cx", center_fnc)
-                            .attr("cy", center_fnc);
-                    node_svgs.enter().append("svg:svg")
+                        .data(nodes).each(attach_grav);
+
+                    node_svgs.selectAll("circle")
+                        .attr("r", markins)
+                        .attr("cx", markout)
+                        .attr("cy", markout);
+
+                    var new_node_gs = node_svgs.enter().append("svg:svg")
                         .style("z-index",301)
-                        .attr("width", diamet_fnc)
-                        .attr("height", diamet_fnc)
+                        .attr("width", function(d){ return markout*2*d.value.scale; })
+                        .attr("height", function(d){ return markout*2*d.value.scale; })
                         .each(attach_grav)
-                        .attr("class", "node")
-                        .append("svg:circle")
-                            .attr("r", radius_fnc)
-                            .attr("cx", center_fnc)
-                            .attr("cy", center_fnc)
+                        .attr("class", "node").append("svg:g")
+                            .attr("transform", function(d){ return "scale("+d.value.scale+","+d.value.scale+")"});
+
+                    new_node_gs.append("svg:defs").append("svg:pattern")
+                        .attr("id",function(d,i){ return "image"+i; })
+                        .attr("x","0")
+                        .attr("y","0")
+                        .attr("patternUnits","objectBoundingBox")
+                        .attr("patternTransform","")
+                        .attr("height","1")
+                        .attr("width","1")
+                        .append("svg:image")
+                            .attr("x","0")
+                            .attr("y","0")
+                            .attr("width",markins*2)
+                            .attr("height",markins*2)
+                            .attr("xlink:href",function(d){ return d.value.image; });
+                    new_node_gs.append("svg:circle")
+                            .attr("r", markins)
+                            .attr("cx", markout)
+                            .attr("cy", markout)
+                            .style("fill", function(d,i){ return "url(#image" + i + ")"; });
+                    new_node_gs.append("svg:circle")
+                            .attr("r", markins)
+                            .attr("cx", markout)
+                            .attr("cy", markout)
+                            .style("opacity",function(d){ return (d.value.image=="")?.8:.5; })
                             .style("fill",function(d){ return colorscale(d.value.group); });
 
                     // force tick function
@@ -284,8 +304,8 @@
                         });
 
                         node_svgs
-                            .style("left", function(d){ return (d.x - Math.max(min_r, d.value.radius * zoom) - 5) + "px"; })
-                            .style("top",  function(d){ return (d.y - Math.max(min_r, d.value.radius * zoom) - 5) + "px"; });
+                            .style("left", function(d){ return (d.x - markout*d.value.scale) + "px"; })
+                            .style("top",  function(d){ return (d.y - markout*d.value.scale) + "px"; });
 
                     });
 
@@ -305,6 +325,7 @@
             force.linkStrength(0).gravity(0);
             backlayer.style("opacity", 1);
             timelayer.style("opacity", 1);
+            map.setCenter(new google.maps.LatLng(20, 0));
             overlay.draw();
         }
 
@@ -315,6 +336,7 @@
             backlayer.style("opacity", 1);
             timelayer.style("opacity", 0);
             map.setZoom(INITZOOM);
+            map.setCenter(new google.maps.LatLng(20, 0));
             overlay.draw();
         }
 
@@ -324,6 +346,7 @@
             force.linkStrength(0).gravity(0);
             backlayer.style("opacity", .5);
             timelayer.style("opacity", 0);
+            map.setCenter(new google.maps.LatLng(20, 0));
             overlay.draw();
         }
 
